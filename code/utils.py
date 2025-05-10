@@ -77,12 +77,13 @@ def extract_DenseSift_descriptors(img):
     return (keypoints, descriptors if descriptors is not None else np.zeros((0, 128), dtype=np.float32))
 
 
-def build_codebook(X, voc_size):
+def build_codebook(X, voc_size, pbar=None):
     """
     使用K-means构建视觉词典（码本）
     输入:
         X (list): 特征描述符列表，每个元素是 (N_i,128) 的numpy数组
         voc_size (int): 视觉词典大小（K-means的聚类中心数）
+        pbar (tqdm object): 进度条对象，用于更新进度
     输出:
         numpy array: 视觉词典/码本 (voc_size,128)
     异常:
@@ -96,8 +97,14 @@ def build_codebook(X, voc_size):
         raise ValueError("未找到可用于构建词典的有效特征描述符")
 
     features = np.vstack(valid_descs)  # 将所有描述符堆叠成(N,128)
-    kmeans = KMeans(n_clusters=voc_size)  # 创建K-means模型
+
+    # 显示K-means训练进度
+    kmeans = KMeans(n_clusters=voc_size, verbose=1 if pbar is None else 0)
     kmeans.fit(features)
+
+    if pbar:
+        pbar.update(1)
+
     return kmeans.cluster_centers_  # 返回聚类中心作为视觉单词
 
 

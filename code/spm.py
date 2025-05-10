@@ -1,7 +1,9 @@
 # coding=utf-8
+import cv2
+
 from utils import load_cifar10_data, extract_DenseSift_descriptors, build_codebook, input_vector_encoder
 from classifier import svm_classifier
-
+from tqdm import  tqdm
 import numpy as np
 import pickle
 
@@ -61,12 +63,56 @@ def spatial_pyramid_matching(image, descriptor, codebook, level):
 
 
 if __name__ == '__main__':
-    x_train, y_train = load_cifar10_data(dataset='train')
-    x_test, y_test = load_cifar10_data(dataset='test')
+    # 1. 加载数据集（添加进度条和print指示）
+    print("开始加载数据集")
+
+    # 先获取训练集和测试集的长度
+    with open('../cifar10/train/train.txt', 'r') as f:
+        train_paths = f.readlines()
+    with open('../cifar10/test/test.txt', 'r') as f:
+        test_paths = f.readlines()
+    total_images = len(train_paths) + len(test_paths)
+    print(f"总图像数: {total_images} (训练集: {len(train_paths)}, 测试集: {len(test_paths)})")
+
+    # 使用 tqdm 显示总进度条
+    with tqdm(total=total_images, desc="加载数据集总进度", position=0) as pbar:
+        x_train, y_train = [], []
+        # 训练集进度条（position=1）
+        for img_path, label in tqdm([p.strip().split(' ') for p in train_paths], desc="训练集", position=1,
+                                    leave=False):
+            img = cv2.imread(img_path)
+            x_train.append(img)
+            y_train.append(label)
+            pbar.update(1)
+
+        # 测试集进度条（position=1，覆盖训练集进度条）
+        x_test, y_test = [], []
+        for img_path, label in tqdm([p.strip().split(' ') for p in test_paths], desc="测试集", position=1, leave=False):
+            img = cv2.imread(img_path)
+            x_test.append(img)
+            y_test.append(label)
+            pbar.update(1)
 
     print("正在提取密集SIFT特征...")
-    x_train_feature = [extract_DenseSift_descriptors(img) for img in x_train]
-    x_test_feature = [extract_DenseSift_descriptors(img) for img in x_test]
+    # 合并训练集和测试集的总进度
+    total_features = len(x_train) + len(x_test)
+    x_train_feature = []
+    x_test_feature = []
+
+    # 外层总进度条（position=0）
+    with tqdm(total=total_features, desc="密集SIFT总进度", position=0) as pbar_total:
+        # 训练集特征提取（内层进度条，position=1）
+        for img in tqdm(x_train, desc="训练集", position=1, leave=False):
+            kp, des = extract_DenseSift_descriptors(img)
+            x_train_feature.append((kp, des))
+            pbar_total.update(1)
+
+        # 测试集特征提取（复用内层进度条，position=1）
+        for img in tqdm(x_test, desc="测试集", position=1, leave=False):
+            kp, des = extract_DenseSift_descriptors(img)
+            x_test_feature.append((kp, des))
+            pbar_total.update(1)
+
     x_train_kp, x_train_des = zip(*x_train_feature)
     x_test_kp, x_test_des = zip(*x_test_feature)
 
@@ -80,20 +126,23 @@ if __name__ == '__main__':
         pickle.dump(codebook, f)
 
     print("正在进行空间金字塔匹配编码...")
-    x_train = [spatial_pyramid_matching(x_train[i],
-                                        x_train_des[i],
-                                        codebook,
-                                        level=PYRAMID_LEVEL)
-               for i in range(len(x_train))]
+    # 为编码过程添加进度条
+    x_train_encoded = []
+    with tqdm(total=len(x_train), desc="训练集编码") as pbar:
+        for i in range(len(x_train)):
+            encoded = spatial_pyramid_matching(x_train[i], x_train_des[i], codebook, level=PYRAMID_LEVEL)
+            x_train_encoded.append(encoded)
+            pbar.update(1)
 
-    x_test = [spatial_pyramid_matching(x_test[i],
-                                       x_test_des[i],
-                                       codebook,
-                                       level=PYRAMID_LEVEL)
-              for i in range(len(x_test))]
+    x_test_encoded = []
+    with tqdm(total=len(x_test), desc="测试集编码") as pbar:
+        for i in range(len(x_test)):
+            encoded = spatial_pyramid_matching(x_test[i], x_test_des[i], codebook, level=PYRAMID_LEVEL)
+            x_test_encoded.append(encoded)
+            pbar.update(1)
 
-    x_train = np.asarray(x_train)
-    x_test = np.asarray(x_test)
+    x_train = np.asarray(x_train_encoded)
+    x_test = np.asarray(x_test_encoded)
 
     print("正在使用SVM分类器进行训练和测试，可能需要较长时间...")
     svm_classifier(x_train, y_train, x_test, y_test)

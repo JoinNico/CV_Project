@@ -3,9 +3,11 @@ import pickle
 
 import cv2
 import numpy as np
+from sklearn import svm
+from sklearn.metrics import classification_report
 from tqdm import tqdm
 from utils import load_cifar10_data, extract_sift_descriptors, build_codebook, input_vector_encoder
-from classifier import svm_classifier
+from classifier import svm_classifier, get_label
 
 VOC_SIZE = 100
 
@@ -91,6 +93,14 @@ if __name__ == '__main__':
 
     # 6. 训练分类器（总进度条）
     print("\n训练分类器...")
-    with tqdm(total=1, desc="总进度") as pbar:
-        svm_classifier(x_train_encoded, y_train, x_test_encoded, y_test)
-        pbar.update(1)
+    with tqdm(total=len(x_train_encoded), desc="训练进度") as pbar:
+        clf = svm.SVC()
+        # 模拟逐样本训练（实际SVM是批量训练，此处仅用于进度条显示）
+        for i in range(len(x_train_encoded)):
+            clf.fit(x_train_encoded[:i + 1], y_train[:i + 1])  # 逐步增加训练数据
+            pbar.update(1)
+
+    # 测试集评估
+    print("\n分类结果如下:\n")
+    y_true, y_pred = y_test, clf.predict(x_test_encoded)
+    print(classification_report(y_true, y_pred, target_names=get_label()))
