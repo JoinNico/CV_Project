@@ -27,7 +27,6 @@ if __name__ == '__main__':
     x_test_des, y_test = zip(*test_data)
 
     print(f"训练样本数: {len(y_train)}, 测试样本数: {len(y_test)}")
-    print(f"特征描述符示例形状: {x_train_des[0].shape}")
 
     # 构建词典
     print("正在构建视觉词典...")
