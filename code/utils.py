@@ -9,11 +9,12 @@ import numpy as np
 DSIFT_STEP_SIZE = 4
 
 
-def load_cifar10_data(dataset):
+def load_cifar10_data(dataset, pbar=None):
     """
     加载CIFAR-10数据集
     输入:
         dataset (str): 'train'或'test'，指定加载训练集或测试集
+        pbar (tqdm object): 进度条对象，用于更新加载进度
     输出:
         list: [图像列表, 标签列表]
         图像列表: list of numpy arrays (H,W,3)
@@ -22,9 +23,12 @@ def load_cifar10_data(dataset):
     if dataset == 'train':
         with open('../cifar10/train/train.txt', 'r') as f:
             paths = f.readlines()
-    if dataset == 'test':
+    elif dataset == 'test':
         with open('../cifar10/test/test.txt', 'r') as f:
             paths = f.readlines()
+    else:
+        raise ValueError("dataset must be 'train' or 'test'")
+
     x, y = [], []
     for each in paths:
         each = each.strip()
@@ -32,6 +36,9 @@ def load_cifar10_data(dataset):
         img = cv2.imread(path)  # 读取BGR格式图像
         x.append(img)
         y.append(label)
+        if pbar:  # 如果提供了进度条对象，则更新进度
+            pbar.update(1)
+
     return [x, y]
 
 
