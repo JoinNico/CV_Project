@@ -96,4 +96,5 @@ if __name__ == '__main__':
     x_test = np.asarray(x_test)
 
     print("正在使用SVM分类器进行训练和测试...")
+    # 需要花很多时间，需要耐心等待
     svm_classifier(x_train, y_train, x_test, y_test)
