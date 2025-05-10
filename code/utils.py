@@ -8,6 +8,7 @@ import numpy as np
 # 密集SIFT特征的步长（像素间隔）
 DSIFT_STEP_SIZE = 4
 
+
 def load_cifar10_data(dataset):
     """
     加载CIFAR-10数据集
@@ -33,6 +34,7 @@ def load_cifar10_data(dataset):
         y.append(label)
     return [x, y]
 
+
 def extract_sift_descriptors(img):
     """
     提取图像的SIFT特征描述符
@@ -46,6 +48,7 @@ def extract_sift_descriptors(img):
     sift = cv2.SIFT_create()
     _, descriptors = sift.detectAndCompute(gray, None)
     return descriptors if descriptors is not None else np.zeros((0, 128), dtype=np.float32)
+
 
 def extract_DenseSift_descriptors(img):
     """
@@ -61,10 +64,11 @@ def extract_DenseSift_descriptors(img):
     sift = cv2.SIFT_create()
     # 在固定网格位置创建关键点
     keypoints = [cv2.KeyPoint(x, y, DSIFT_STEP_SIZE)
-                for y in range(0, gray.shape[0], DSIFT_STEP_SIZE)
-                for x in range(0, gray.shape[1], DSIFT_STEP_SIZE)]
+                 for y in range(0, gray.shape[0], DSIFT_STEP_SIZE)
+                 for x in range(0, gray.shape[1], DSIFT_STEP_SIZE)]
     _, descriptors = sift.compute(gray, keypoints)
     return (keypoints, descriptors if descriptors is not None else np.zeros((0, 128), dtype=np.float32))
+
 
 def build_codebook(X, voc_size):
     """
@@ -79,7 +83,7 @@ def build_codebook(X, voc_size):
     """
     # 过滤无效描述子并确保二维结构
     valid_descs = [desc for desc in X
-                  if isinstance(desc, np.ndarray) and desc.ndim == 2 and desc.shape[1] == 128]
+                   if isinstance(desc, np.ndarray) and desc.ndim == 2 and desc.shape[1] == 128]
 
     if not valid_descs:
         raise ValueError("未找到可用于构建词典的有效特征描述符")
@@ -88,6 +92,7 @@ def build_codebook(X, voc_size):
     kmeans = KMeans(n_clusters=voc_size)  # 创建K-means模型
     kmeans.fit(features)
     return kmeans.cluster_centers_  # 返回聚类中心作为视觉单词
+
 
 def input_vector_encoder(feature, codebook):
     """
