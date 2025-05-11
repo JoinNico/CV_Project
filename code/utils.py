@@ -4,6 +4,7 @@ import sklearn
 from sklearn.cluster import KMeans
 import scipy.cluster.vq as vq
 import numpy as np
+from tqdm import tqdm
 
 # 密集SIFT特征的步长（像素间隔）
 DSIFT_STEP_SIZE = 4
@@ -77,13 +78,60 @@ def extract_DenseSift_descriptors(img):
     return (keypoints, descriptors if descriptors is not None else np.zeros((0, 128), dtype=np.float32))
 
 
-def build_codebook(X, voc_size, pbar=None):
+def load_data_with_progress(test_mode=False, test_sample_size=10):
+    """
+    带进度条的数据加载函数
+    参数:
+        test_mode: 是否测试模式
+        test_sample_size: 测试样本量
+    返回:
+        (x_train, y_train), (x_test, y_test)
+    """
+    print("加载数据集...")
+
+    # 获取文件路径
+    with open('../cifar10/train/train.txt', 'r') as f:
+        train_paths = f.readlines()
+    with open('../cifar10/test/test.txt', 'r') as f:
+        test_paths = f.readlines()
+
+    # 测试模式下减少数据量
+    if test_mode:
+        train_paths = train_paths[:test_sample_size]
+        test_paths = test_paths[:test_sample_size // 2]
+
+    total_images = len(train_paths) + len(test_paths)
+    print(f"总图像数: {total_images} (训练集: {len(train_paths)}, 测试集: {len(test_paths)})")
+
+    # 使用tqdm加载数据
+    x_train, y_train, x_test, y_test = [], [], [], []
+    with tqdm(total=total_images, desc="加载进度") as pbar:
+        # 加载训练集
+        for img_path, label in tqdm([p.strip().split(' ') for p in train_paths],
+                                    desc="训练集", leave=False):
+            img = cv2.imread(img_path)
+            if img is not None:
+                x_train.append(img)
+                y_train.append(label)
+            pbar.update(1)
+
+        # 加载测试集
+        for img_path, label in tqdm([p.strip().split(' ') for p in test_paths],
+                                    desc="测试集", leave=False):
+            img = cv2.imread(img_path)
+            if img is not None:
+                x_test.append(img)
+                y_test.append(label)
+            pbar.update(1)
+
+    return (x_train, y_train), (x_test, y_test)
+
+def build_codebook(X, voc_size):
     """
     使用K-means构建视觉词典（码本）
     输入:
         X (list): 特征描述符列表，每个元素是 (N_i,128) 的numpy数组
         voc_size (int): 视觉词典大小（K-means的聚类中心数）
-        pbar (tqdm object): 进度条对象，用于更新进度
     输出:
         numpy array: 视觉词典/码本 (voc_size,128)
     异常:
@@ -97,14 +145,8 @@ def build_codebook(X, voc_size, pbar=None):
         raise ValueError("未找到可用于构建词典的有效特征描述符")
 
     features = np.vstack(valid_descs)  # 将所有描述符堆叠成(N,128)
-
-    # 显示K-means训练进度
-    kmeans = KMeans(n_clusters=voc_size, verbose=1 if pbar is None else 0)
+    kmeans = KMeans(n_clusters=voc_size)  # 创建K-means模型
     kmeans.fit(features)
-
-    if pbar:
-        pbar.update(1)
-
     return kmeans.cluster_centers_  # 返回聚类中心作为视觉单词
 
 
