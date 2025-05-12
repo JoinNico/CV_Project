@@ -163,64 +163,6 @@ def compare_models(test_mode=True, test_sample_size=1000, run_bow=True, run_spm=
     return results
 
 
-def visualize_class_performance_comparison(results, save_dir):
-    """
-    可视化不同模型在各个类别上的性能比较
-
-    参数:
-        results: 模型结果列表
-        save_dir: 保存目录
-    """
-    class_names = get_label()
-    model_names = [r['model'] for r in results]
-
-    # 计算每个模型在每个类别上的准确率
-    class_performance = []
-
-    for r in results:
-        y_true = np.array(r['y_true'])
-        y_pred = np.array(r['y_pred'])
-
-        for i, class_name in enumerate(class_names):
-            # 找出属于该类别的样本索引
-            class_indices = np.array([j for j, label in enumerate(y_true) if label == class_name])
-            if len(class_indices) > 0:
-                # 计算该类别的准确率
-                class_correct = sum(1 for j in class_indices if y_pred[j] == y_true[j])
-                class_accuracy = class_correct / len(class_indices)
-            else:
-                class_accuracy = 0
-
-            class_performance.append({
-                '模型': r['model'],
-                '类别': class_name,
-                '准确率': class_accuracy
-            })
-
-    # 创建数据框
-    df = pd.DataFrame(class_performance)
-
-    # 绘制热力图
-    set_chinese_font()
-    plt.figure(figsize=(12, 8))
-
-    # 透视表
-    pivot_df = df.pivot(index='类别', columns='模型', values='准确率')
-
-    # 绘制热力图
-    sns.heatmap(pivot_df, annot=True, fmt='.2f', cmap='YlGnBu', cbar_kws={'label': '准确率'})
-    plt.title('各模型在不同类别上的准确率比较', fontsize=14)
-    plt.tight_layout()
-
-    # 保存图像
-    class_comparison_path = os.path.join(save_dir, 'class_performance_comparison.png')
-    plt.savefig(class_comparison_path, dpi=300, bbox_inches='tight')
-    plt.close()
-    print(f"已保存类别性能比较图到: {class_comparison_path}")
-
-    return df
-
-
 if __name__ == '__main__':
     # 比较模型性能
     results = compare_models(
@@ -230,9 +172,3 @@ if __name__ == '__main__':
         run_spm=True,
         spm_levels=[1, 2]
     )
-
-    # 如果有结果，比较类别性能
-    if results:
-        vis_dir = create_visualization_directory()
-        comp_dir = os.path.join(vis_dir, 'comparison')
-        visualize_class_performance_comparison(results, comp_dir)

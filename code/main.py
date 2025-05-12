@@ -1,8 +1,7 @@
 # coding=utf-8
 import os
 import argparse
-from comparison import compare_models, visualize_class_performance_comparison
-from visualization import create_visualization_directory
+from comparison import compare_models
 
 
 def main():
@@ -12,7 +11,7 @@ def main():
     # 基本参数
     parser.add_argument('--test_mode', action='store_true', default=True,
                         help='是否使用测试模式（默认：True）')
-    parser.add_argument('--test_sample_size', type=int, default=10000,
+    parser.add_argument('--test_sample_size', type=int, default=1000,
                         help='测试样本数量（默认：1000）')
 
     # 模型选择参数
@@ -52,11 +51,6 @@ def main():
         run_spm=args.run_spm,
         spm_levels=args.spm_levels
     )
-
-    # 如果有结果，比较类别性能
-    if results:
-        comp_dir = os.path.join(args.visualization_dir, 'comparison')
-        visualize_class_performance_comparison(results, comp_dir)
 
     print("\n所有任务已完成！")
 
