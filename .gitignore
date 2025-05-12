@@ -1,4 +1,4 @@
-./code/*.pkl
-./code/visualization
+.\code\*.pkl
+.\code\visualization
 .idea
-./code/__pycache__
+.\code\__pycache__
