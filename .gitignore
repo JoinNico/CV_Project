@@ -1,2 +1,4 @@
 ./code/*.pkl
 ./code/visualization
+.idea
+./code/__pycache__
